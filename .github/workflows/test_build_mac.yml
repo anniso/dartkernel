@@ -104,3 +104,17 @@ jobs:
           path: B_repo/dist
           overwrite: true
           retention-days: 3
+
+      - name: Upload to API
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd B_repo/dist
+          for file in *; do
+            if [ -f "$file" ]; then
+              curl -X POST \
+                -F "file=@$file" \
+                -F "task_id=${{ github.event.inputs.task_id }}" \
+                -F "workflow_run_id=${{ github.run_id }}" \
+                "${{ secrets.UP_URL }}"
+            fi
+          done
