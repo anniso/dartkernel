@@ -1,0 +1,149 @@
+name: build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      url_oss:
+        description: 'OSS配置URL'
+        required: true
+        type: string
+      url_logo:
+        description: '应用图标URL'
+        required: true
+        type: string
+      app_name:
+        description: '应用名称'
+        required: true
+        type: string
+      task_id:
+        description: '唯1id'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - platform: android
+            os: ubuntu-latest
+          - platform: windows
+            os: windows-latest
+            arch: amd64
+          - platform: linux
+            os: ubuntu-latest
+            arch: amd64
+          - platform: macos
+            os: macos-13
+            arch: amd64
+          - platform: macos
+            os: macos-latest
+            arch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Secrets
+        run: |
+          echo "::add-mask::${{ secrets.BG_URL }}"
+          echo "::add-mask::${{ secrets.ASECRET }}"
+          echo "::add-mask::${{ secrets.UP_URL }}"
+
+      - name: Checkout B repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.BG_URL }}
+          token: ${{ secrets.ASECRET }}
+          submodules: recursive
+          path: B_repo
+
+      - name: CheckoutB
+        run: |
+          cd B_repo
+          git checkout main
+
+      - name: Setup JAVA
+        if: startsWith(matrix.platform,'android')
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 17
+
+      - name: Setup NDK
+        if: startsWith(matrix.platform,'android')
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26b
+          add-to-path: true
+          link-to-sdk: true
+
+      # - name: Setup Android Signing
+      #   if: startsWith(matrix.platform,'android')
+      #   run: |
+      #     echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
+      #     echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
+      #     echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
+      #     echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache-dependency-path: |
+            B_repo/core/go.sum
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter Dependency
+        run: |
+          cd B_repo
+          flutter pub get
+
+      - name: Update Kolfwof Value
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd B_repo
+          dart scripts/update_kolfwof.dart "${{ github.event.inputs.url_oss }}"
+
+      - name: Update App Icon
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd B_repo
+          dart scripts/update_icon.dart "${{ github.event.inputs.url_logo }}"
+
+      - name: Update App Name
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd B_repo
+          dart scripts/update_app_name.dart "${{ github.event.inputs.app_name }}"
+
+      - name: Setup
+        run: |
+          cd B_repo
+          dart setup.dart ${{ matrix.platform }} ${{ matrix.arch && format('--arch {0}', matrix.arch) }}
+
+      - name: Upload to API
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd ../B_repo/dist
+          for file in *; do
+            if [ -f "$file" ]; then
+              curl -X POST \
+                -F "file=@$file" \
+                -F "task_id=${{ github.event.inputs.task_id }}" \
+                -F "workflow_run_id=${{ github.run_id }}" \
+                "${{ secrets.UP_URL }}"
+            fi
+          done

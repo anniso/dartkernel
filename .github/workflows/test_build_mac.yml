@@ -41,6 +41,7 @@ jobs:
         run: |
           echo "::add-mask::${{ secrets.BG_URL }}"
           echo "::add-mask::${{ secrets.ASECRET }}"
+          echo "::add-mask::${{ secrets.UP_URL }}"
 
       - name: Checkout B repository
         uses: actions/checkout@v4
@@ -95,14 +96,6 @@ jobs:
         run: |
           cd B_repo
           dart setup.dart macos --arch ${{ matrix.arch }}
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifact-macos-${{ matrix.arch }}
-          path: B_repo/dist
-          overwrite: true
-          retention-days: 3
 
       - name: Upload to API
         if: github.event_name == 'workflow_dispatch'
