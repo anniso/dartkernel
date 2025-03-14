@@ -69,6 +69,24 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Update Kolfwof Value
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd B_repo
+          dart scripts/update_kolfwof.dart "${{ github.event.inputs.url_oss }}"
+
+      - name: Update App Icon
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd B_repo
+          dart scripts/update_icon.dart "${{ github.event.inputs.url_logo }}"
+
+      - name: Update App Name
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd B_repo
+          dart scripts/update_app_name.dart "${{ github.event.inputs.app_name }}"
+
       - name: Get Flutter Dependency
         run: |
           cd B_repo
