@@ -5,6 +5,23 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      url_oss:
+        description: 'OSS配置URL'
+        required: true
+        type: string
+      url_logo:
+        description: '应用图标URL'
+        required: true
+        type: string
+      app_name:
+        description: '应用名称'
+        required: true
+        type: string
+      task_id:
+        description: '唯1id'
+        required: true
+        type: string
 
 jobs:
   build-macos:
