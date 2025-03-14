@@ -137,7 +137,7 @@ jobs:
       - name: Upload to API
         if: github.event_name == 'workflow_dispatch'
         run: |
-          cd ../B_repo/dist
+          cd B_repo/dist
           for file in *; do
             if [ -f "$file" ]; then
               curl -X POST \
