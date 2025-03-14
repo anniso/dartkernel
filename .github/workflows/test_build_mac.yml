@@ -69,6 +69,11 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Get Flutter Dependency
+        run: |
+          cd B_repo
+          flutter pub get
+
       - name: Update Kolfwof Value
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -86,11 +91,6 @@ jobs:
         run: |
           cd B_repo
           dart scripts/update_app_name.dart "${{ github.event.inputs.app_name }}"
-
-      - name: Get Flutter Dependency
-        run: |
-          cd B_repo
-          flutter pub get
 
       - name: Setup
         run: |
