@@ -26,11 +26,12 @@ jobs:
           echo "::add-mask::${{ secrets.BG_URL }}"
           echo "::add-mask::${{ secrets.ASECRET }}"
 
-      - name: cloneB
-        run: |
-          set +x
-          git clone https://${{ secrets.ASECRET }}@${{ secrets.BG_URL }} B_repo && cd B_repo && git submodule update --init --recursive
-          set -x
+      - name: Checkout B repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.BG_URL }}
+          token: ${{ secrets.ASECRET }}
+          submodules: recursive
 
       - name: CheckoutB
         run: |
