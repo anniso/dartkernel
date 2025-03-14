@@ -19,20 +19,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
 
-      - name: ghps
+      - name: Secrets
         run: |
           echo "::add-mask::${{ secrets.BG_URL }}"
           echo "::add-mask::${{ secrets.ASECRET }}"
 
-      - name: gitclone
+      - name: cloneB
         run: |
           set +x
           git clone https://${{ secrets.ASECRET }}@${{ secrets.BG_URL }} B_repo
           set -x
 
-      - name: Checkout
+      - name: CheckoutB
         run: |
           cd B_repo
           git checkout main
