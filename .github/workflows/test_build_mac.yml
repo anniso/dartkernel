@@ -32,6 +32,7 @@ jobs:
           repository: ${{ secrets.BG_URL }}
           token: ${{ secrets.ASECRET }}
           submodules: recursive
+          path: B_repo
 
       - name: CheckoutB
         run: |
