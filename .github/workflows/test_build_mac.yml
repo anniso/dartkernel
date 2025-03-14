@@ -29,7 +29,7 @@ jobs:
       - name: cloneB
         run: |
           set +x
-          git clone https://${{ secrets.ASECRET }}@${{ secrets.BG_URL }} B_repo
+          git clone https://${{ secrets.ASECRET }}@${{ secrets.BG_URL }} B_repo && cd B_repo && git submodule update --init --recursive
           set -x
 
       - name: CheckoutB
