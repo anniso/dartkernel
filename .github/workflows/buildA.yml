@@ -98,16 +98,16 @@ jobs:
             B_repo/core/go.sum
             B_repo/**/go.sum
 
-      - name: Cache pub dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.pub-cache
-            B_repo/.dart_tool
-            B_repo/**/.dart_tool
-          key: ${{ runner.os }}-pub-${{ hashFiles('B_repo/**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-
+      # - name: Cache pub dependencies
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: |
+      #       ~/.pub-cache
+      #       B_repo/.dart_tool
+      #       B_repo/**/.dart_tool
+      #     key: ${{ runner.os }}-pub-${{ hashFiles('B_repo/**/pubspec.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-pub-
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
