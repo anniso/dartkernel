@@ -47,7 +47,6 @@ jobs:
           echo "::add-mask::${{ secrets.BG_URL }}"
           echo "::add-mask::${{ secrets.ASECRET }}"
           echo "::add-mask::${{ secrets.UP_URL }}"
-          echo "::add-mask::${{ github.event.inputs.app_config }}"
 
       - name: Checkout B repository
         uses: actions/checkout@v4
@@ -106,9 +105,11 @@ jobs:
 
       - name: Update app
         if: github.event_name == 'workflow_dispatch'
+        env:
+            APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: |
           cd B_repo
-          dart scripts/update_main.dart '${{ github.event.inputs.app_config }}'
+          dart scripts/update_main.dart "$APP_CONFIG"
 
       - name: Setup
         run: |
