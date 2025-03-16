@@ -108,7 +108,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           cd B_repo
-          dart scripts/update_main.dart "${{ github.event.inputs.app_config }}"
+          dart scripts/update_main.dart '${{ github.event.inputs.app_config }}'
 
       - name: Setup
         run: |
