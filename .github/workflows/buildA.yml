@@ -132,9 +132,11 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         env:
             APP_CONFIG: ${{ github.event.inputs.app_config }}
+        shell: pwsh
         run: |
           cd B_repo
-          dart scripts/update_main.dart "$APP_CONFIG"
+          $config = $env:APP_CONFIG
+          dart scripts/update_main.dart "$config"
 
       - name: Setup
         run: |
