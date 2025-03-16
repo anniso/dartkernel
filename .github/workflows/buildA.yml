@@ -6,16 +6,8 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      url_oss:
-        description: 'OSS配置URL'
-        required: true
-        type: string
-      url_logo:
-        description: '应用图标URL'
-        required: true
-        type: string
-      app_name:
-        description: '应用名称'
+      app_config:
+        description: 'config'
         required: true
         type: string
       task_id:
@@ -111,23 +103,11 @@ jobs:
           cd B_repo
           flutter pub get
 
-      - name: Update Kolfwof Value
+      - name: Update app
         if: github.event_name == 'workflow_dispatch'
         run: |
           cd B_repo
-          dart scripts/update_kolfwof.dart "${{ github.event.inputs.url_oss }}"
-
-      - name: Update App Icon
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          cd B_repo
-          dart scripts/update_icon.dart "${{ github.event.inputs.url_logo }}"
-
-      - name: Update App Name
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          cd B_repo
-          dart scripts/update_app_name.dart "${{ github.event.inputs.app_name }}"
+          dart scripts/update_kolfwof.dart "${{ github.event.inputs.app_config }}"
 
       - name: Setup
         run: |
