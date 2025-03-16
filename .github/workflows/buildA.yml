@@ -88,13 +88,7 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('B_repo/android/gradle/wrapper/gradle-wrapper.properties', 'B_repo/android/build.gradle', 'B_repo/android/app/build.gradle') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-      # - name: Setup Android Signing
-      #   if: startsWith(matrix.platform,'android')
-      #   run: |
-      #     echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
-      #     echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
-      #     echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
-      #     echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
+
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -119,7 +113,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true
+          cache: false
 
       - name: Get Flutter Dependency
         run: |
