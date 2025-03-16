@@ -77,6 +77,17 @@ jobs:
           add-to-path: true
           link-to-sdk: true
 
+      - name: Cache Gradle
+        if: startsWith(matrix.platform,'android')
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            B_repo/android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('B_repo/android/gradle/wrapper/gradle-wrapper.properties', 'B_repo/android/build.gradle', 'B_repo/android/app/build.gradle') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
       # - name: Setup Android Signing
       #   if: startsWith(matrix.platform,'android')
       #   run: |
@@ -91,12 +102,26 @@ jobs:
           go-version: 'stable'
           cache-dependency-path: |
             B_repo/core/go.sum
+            B_repo/**/go.sum
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+            B_repo/.dart_tool
+            B_repo/**/.dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('B_repo/**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:-:arch:-:hash:'
+          cache-path: '${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:'
 
       - name: Get Flutter Dependency
         run: |
