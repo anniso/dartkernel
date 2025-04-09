@@ -15,6 +15,9 @@ on:
         required: true
         type: string
 
+env:
+  IS_STABLE: 'true'
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -134,7 +137,7 @@ jobs:
       - name: Setup
         run: |
           cd B_repo
-          dart setup.dart ${{ matrix.platform }} ${{ matrix.arch && format('--arch {0}', matrix.arch) }}
+          dart setup.dart ${{ matrix.platform }} ${{ matrix.arch && format('--arch {0}', matrix.arch) }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }}
 
       - name: Upload to API
         if: github.event_name == 'workflow_dispatch'
