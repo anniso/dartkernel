@@ -80,17 +80,17 @@ jobs:
       #     add-to-path: true
       #     link-to-sdk: true
 
-      - name: Cache Gradle
-        if: startsWith(matrix.platform,'android')
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            B_repo/android/.gradle
-          key: ${{ runner.os }}-gradle-${{ hashFiles('B_repo/android/gradle/wrapper/gradle-wrapper.properties', 'B_repo/android/build.gradle', 'B_repo/android/app/build.gradle') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+      # - name: Cache Gradle
+      #   if: startsWith(matrix.platform,'android')
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: |
+      #       ~/.gradle/caches
+      #       ~/.gradle/wrapper
+      #       B_repo/android/.gradle
+      #     key: ${{ runner.os }}-gradle-${{ hashFiles('B_repo/android/gradle/wrapper/gradle-wrapper.properties', 'B_repo/android/build.gradle', 'B_repo/android/app/build.gradle') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-gradle-
 
 
       - name: Setup Go
