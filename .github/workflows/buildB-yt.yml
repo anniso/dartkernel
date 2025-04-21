@@ -58,11 +58,12 @@ jobs:
           token: ${{ secrets.ASECRET }}
           submodules: recursive
           path: B_repo
+          ref: dz-bj
 
       - name: CheckoutB
         run: |
           cd B_repo
-          git checkout main
+          git checkout dz-bj
 
       - name: Setup Go
         uses: actions/setup-go@v5
