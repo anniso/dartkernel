@@ -1,0 +1,123 @@
+name: build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      app_config:
+        description: 'config'
+        required: true
+        type: string
+      task_id:
+        description: '唯1id'
+        required: true
+        type: string
+
+env:
+  IS_STABLE: 'true'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - platform: android
+            os: ubuntu-latest
+          - platform: windows
+            os: windows-latest
+            arch: amd64
+          - platform: linux
+            os: ubuntu-latest
+            arch: amd64
+          - platform: macos
+            os: macos-14
+            arch: amd64
+          - platform: macos
+            os: macos-latest
+            arch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Secrets
+        run: |
+          echo "::add-mask::${{ secrets.BG_URL }}"
+          echo "::add-mask::${{ secrets.ASECRET }}"
+          echo "::add-mask::${{ secrets.UP_URL }}"
+
+      - name: Checkout B repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.BG_URL }}
+          token: ${{ secrets.ASECRET }}
+          submodules: recursive
+          path: B_repo
+          ref: dz-1957988931
+
+      - name: CheckoutB
+        run: |
+          cd B_repo
+          git checkout dz-1957988931
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.0'
+          cache-dependency-path: |
+            B_repo/core/go.sum
+            B_repo/**/go.sum
+
+      # - name: Cache pub dependencies
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: |
+      #       ~/.pub-cache
+      #       B_repo/.dart_tool
+      #       B_repo/**/.dart_tool
+      #     key: ${{ runner.os }}-pub-${{ hashFiles('B_repo/**/pubspec.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-pub-
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ (startsWith(matrix.os, 'windows-11-arm') || startsWith(matrix.os, 'ubuntu-24.04-arm')) && 'master' || 'stable' }}
+          cache: false
+
+      - name: Get Flutter Dependency
+        run: |
+          cd B_repo
+          flutter pub get
+
+      - name: Update app
+        if: github.event_name == 'workflow_dispatch'
+        env:
+            APP_CONFIG: ${{ github.event.inputs.app_config }}
+        shell: pwsh
+        run: |
+          cd B_repo
+          $config = $env:APP_CONFIG
+          dart scripts/update_main.dart "$config"
+          flutter pub run build_runner build --delete-conflicting-outputs
+
+      - name: Setup
+        run: |
+          cd B_repo
+          dart setup.dart ${{ matrix.platform }} ${{ matrix.arch && format('--arch {0}', matrix.arch) }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }}
+
+      - name: Upload to API
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          cd B_repo/dist
+          find . -type f -maxdepth 1 -exec curl -X POST \
+            -F "file=@{}" \
+            -F "task_id=${{ github.event.inputs.task_id }}" \
+            -F "workflow_run_id=${{ github.run_id }}" \
+            "${{ secrets.UP_URL }}" \;
