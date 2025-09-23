@@ -89,6 +89,10 @@ jobs:
           flutter-version: 3.29.3
           channel: ${{ (startsWith(matrix.os, 'windows-11-arm') || startsWith(matrix.os, 'ubuntu-24.04-arm')) && 'master' || 'stable' }}
           cache: false
+          
+      - name: Install Inno Setup
+        if: matrix.platform == 'windows'
+        run: choco install innosetup --yes
 
       - name: Get Flutter Dependency
         run: |
