@@ -58,6 +58,7 @@ jobs:
           token: ${{ secrets.ASECRET }}
           submodules: recursive
           path: B_repo
+          ref: test
 
       - name: CheckoutB
         run: |
