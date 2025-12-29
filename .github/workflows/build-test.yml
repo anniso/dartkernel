@@ -118,26 +118,6 @@ jobs:
 
       - name: Upload to API
         if: github.event_name == 'workflow_dispatch'
-        shell: bash
         run: |
-          cd B_repo/dist
-          find . -type f -maxdepth 1 | while read file; do
-            echo "Uploading $file"
-            attempt=0
-            until [ $attempt -ge 5 ]
-            do
-              curl -X POST \
-                -F "file=@$file" \
-                -F "task_id=${{ github.event.inputs.task_id }}" \
-                -F "workflow_run_id=${{ github.run_id }}" \
-                "${{ secrets.UP_URL }}" && break
-              attempt=$((attempt+1))
-              echo "Upload failed, retrying ($attempt)..."
-              sleep 3
-            done
-
-            if [ $attempt -eq 5 ]; then
-              echo "Upload failed after 5 attempts for $file"
-              exit 1
-            fi
-          done
+          cd B_repo
+          dart run scripts/upload_dist.dart --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --upload_url=${{ secrets.UP_URL }}
