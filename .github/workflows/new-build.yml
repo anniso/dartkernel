@@ -1,0 +1,375 @@
+name: Build from Public Repo
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Which platform to build'
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - macos
+          - linux
+          - windows
+          - android
+      app_config:
+        description: 'config'
+        required: true
+        type: string
+      task_id:
+        description: '唯一id'
+        required: true
+        type: string
+
+env:
+  # 私有仓库地址（直接硬编码）
+  PRIVATE_REPO: 'https://github.com/anniso/x'
+  PRIVATE_REPO_REF: 'master'
+
+jobs:
+  build-macos:
+    name: Build Tauri app (macOS)
+    runs-on: macos-latest
+    if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'macos' }}
+
+    steps:
+      - name: Checkout private repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PRIVATE_REPO }}
+          token: ${{ secrets.ASECRET }}
+          ref: ${{ env.PRIVATE_REPO_REF }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply custom config
+        if: ${{ github.event.inputs.app_config != '' }}
+        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+
+      - name: Add Rust targets for universal binary
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Build Tauri app (universal)
+        run: pnpm tauri build --target universal-apple-darwin
+
+      - name: Upload bundle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: x-tunnel-macos
+          path: |
+            src-tauri/target/universal-apple-darwin/release/bundle/**/*
+
+      - name: Upload to API
+        if: ${{ github.event.inputs.task_id != '' }}
+        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=macos
+
+  build-linux:
+    name: Build Tauri app (Linux)
+    runs-on: ubuntu-22.04
+    if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'linux' }}
+
+    steps:
+      - name: Checkout private repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PRIVATE_REPO }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          ref: ${{ env.PRIVATE_REPO_REF }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.0-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply custom config
+        if: ${{ github.event.inputs.app_config != '' }}
+        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+
+      - name: Build Tauri app
+        run: pnpm tauri build --bundles appimage,deb
+
+      - name: Upload bundle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: x-tunnel-linux
+          path: |
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/deb/*.deb
+
+      - name: Upload to API
+        if: ${{ github.event.inputs.task_id != '' }}
+        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=linux
+
+  build-windows:
+    name: Build Tauri app (Windows)
+    runs-on: windows-latest
+    if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'windows' }}
+
+    steps:
+      - name: Checkout private repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PRIVATE_REPO }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          ref: ${{ env.PRIVATE_REPO_REF }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply custom config
+        if: ${{ github.event.inputs.app_config != '' }}
+        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+
+      - name: Build Tauri app
+        run: pnpm tauri build
+
+      - name: Upload bundle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: x-tunnel-windows
+          path: |
+            src-tauri/target/release/bundle/**/*
+
+      - name: Upload to API
+        if: ${{ github.event.inputs.task_id != '' }}
+        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=windows
+
+  build-android:
+    name: Build Android (${{ matrix.arch.name }})
+    runs-on: ubuntu-22.04
+    if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'android' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - name: arm64-v8a
+            target: aarch64
+            rust_target: aarch64-linux-android
+            go_arch: arm64-v8a
+          - name: x86_64
+            target: x86_64
+            rust_target: x86_64-linux-android
+            go_arch: x86_64
+
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Checkout private repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PRIVATE_REPO }}
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          ref: ${{ env.PRIVATE_REPO_REF }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26d
+          local-cache: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: core/go.sum
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.arch.rust_target }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: android-${{ matrix.arch.name }}
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply custom config
+        if: ${{ github.event.inputs.app_config != '' }}
+        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+
+      - name: Build Go core library
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ARCHS: ${{ matrix.arch.go_arch }}
+        run: |
+          chmod +x scripts/build_android.sh
+          scripts/build_android.sh
+
+      - name: Build Android APK
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: pnpm tauri android build --target ${{ matrix.arch.target }} --apk true
+
+      - name: Sign APK
+        run: |
+          # 检查是否有 customize.ts 生成的 keystore
+          KEYSTORE_PROPS="src-tauri/gen/android/keystore.properties"
+          KEYSTORE_JKS="src-tauri/gen/android/app/keystore.jks"
+          
+          if [ -f "$KEYSTORE_PROPS" ] && [ -f "$KEYSTORE_JKS" ]; then
+            echo "使用 customize.ts 生成的签名..."
+            # 读取签名配置
+            STORE_PASSWORD=$(grep 'storePassword' "$KEYSTORE_PROPS" | cut -d'=' -f2)
+            KEY_PASSWORD=$(grep 'keyPassword' "$KEYSTORE_PROPS" | cut -d'=' -f2)
+            KEY_ALIAS=$(grep 'keyAlias' "$KEYSTORE_PROPS" | cut -d'=' -f2)
+            KEYSTORE_PATH="$KEYSTORE_JKS"
+          else
+            echo "生成临时测试 keystore..."
+            keytool -genkey -v -keystore /tmp/keystore.jks \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -alias release -storepass testpass123 -keypass testpass123 \
+              -dname "CN=Test, OU=Test, O=Test, L=Test, ST=Test, C=CN"
+            STORE_PASSWORD="testpass123"
+            KEY_PASSWORD="testpass123"
+            KEY_ALIAS="release"
+            KEYSTORE_PATH="/tmp/keystore.jks"
+          fi
+          
+          # 查找未签名 APK
+          APK_PATH=$(find src-tauri/gen/android/app/build/outputs/apk -name "*-unsigned.apk" | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "未找到未签名 APK"
+            exit 1
+          fi
+          SIGNED_APK="${APK_PATH/-unsigned/}"
+          
+          # 使用 apksigner 签名
+          ${ANDROID_HOME}/build-tools/34.0.0/apksigner sign \
+            --ks "$KEYSTORE_PATH" \
+            --ks-pass pass:$STORE_PASSWORD \
+            --ks-key-alias $KEY_ALIAS \
+            --key-pass pass:$KEY_PASSWORD \
+            --out "$SIGNED_APK" \
+            "$APK_PATH"
+          
+          # 删除未签名 APK
+          rm "$APK_PATH"
+          
+          # 如果是临时 keystore，删除它
+          if [ "$KEYSTORE_PATH" = "/tmp/keystore.jks" ]; then
+            rm /tmp/keystore.jks
+          fi
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: x-tunnel-android-${{ matrix.arch.name }}
+          path: |
+            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+            !src-tauri/gen/android/app/build/outputs/apk/**/*-unsigned.apk
+
+      - name: Upload to API
+        if: ${{ github.event.inputs.task_id != '' }}
+        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=android
