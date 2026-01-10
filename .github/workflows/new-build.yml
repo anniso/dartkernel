@@ -65,17 +65,20 @@ jobs:
           workspaces: B_repo/src-tauri -> target
 
       - name: Install JS dependencies
-        run: cd B_repo && pnpm install --frozen-lockfile
+        working-directory: B_repo
+        run: pnpm install --frozen-lockfile
 
       - name: Apply custom config
         if: ${{ github.event.inputs.app_config != '' }}
-        run: cd B_repo && pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+        working-directory: B_repo
+        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
 
       - name: Add Rust targets for universal binary
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       - name: Build Tauri app (universal)
-        run: cd B_repo && pnpm tauri build --target universal-apple-darwin
+        working-directory: B_repo
+        run: pnpm tauri build --target universal-apple-darwin
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
@@ -86,7 +89,8 @@ jobs:
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
-        run: cd B_repo && pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=macos
+        working-directory: B_repo
+        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=macos
 
   build-linux:
     name: Build Tauri app (Linux)
@@ -134,14 +138,17 @@ jobs:
             patchelf
 
       - name: Install JS dependencies
-        run: cd B_repo && pnpm install --frozen-lockfile
+        working-directory: B_repo
+        run: pnpm install --frozen-lockfile
 
       - name: Apply custom config
         if: ${{ github.event.inputs.app_config != '' }}
-        run: cd B_repo && pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+        working-directory: B_repo
+        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
 
       - name: Build Tauri app
-        run: cd B_repo && pnpm tauri build --bundles appimage,deb
+        working-directory: B_repo
+        run: pnpm tauri build --bundles appimage,deb
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
@@ -153,7 +160,8 @@ jobs:
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
-        run: cd B_repo && pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=linux
+        working-directory: B_repo
+        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=linux
 
   build-windows:
     name: Build Tauri app (Windows)
@@ -191,17 +199,17 @@ jobs:
           workspaces: B_repo/src-tauri -> target
 
       - name: Install JS dependencies
-        run: cd B_repo && pnpm install --frozen-lockfile
+        working-directory: B_repo
+        run: pnpm install --frozen-lockfile
 
       - name: Apply custom config
         if: ${{ github.event.inputs.app_config != '' }}
-        shell: pwsh
-        run: |
-          cd B_repo
-          pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+        working-directory: B_repo
+        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
 
       - name: Build Tauri app
-        run: cd B_repo && pnpm tauri build
+        working-directory: B_repo
+        run: pnpm tauri build
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
@@ -212,7 +220,8 @@ jobs:
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
-        run: cd B_repo && pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=windows
+        working-directory: B_repo
+        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=windows
 
   build-android:
     name: Build Android (${{ matrix.arch.name }})
@@ -296,29 +305,32 @@ jobs:
           key: android-${{ matrix.arch.name }}
 
       - name: Install JS dependencies
-        run: cd B_repo && pnpm install --frozen-lockfile
+        working-directory: B_repo
+        run: pnpm install --frozen-lockfile
 
       - name: Apply custom config
         if: ${{ github.event.inputs.app_config != '' }}
-        run: cd B_repo && pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+        working-directory: B_repo
+        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
 
       - name: Build Go core library
+        working-directory: B_repo
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ARCHS: ${{ matrix.arch.go_arch }}
         run: |
-          cd B_repo
           chmod +x scripts/build_android.sh
           scripts/build_android.sh
 
       - name: Build Android APK
+        working-directory: B_repo
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-        run: cd B_repo && pnpm tauri android build --target ${{ matrix.arch.target }} --apk true
+        run: pnpm tauri android build --target ${{ matrix.arch.target }} --apk true
 
       - name: Sign APK
+        working-directory: B_repo
         run: |
-          cd B_repo
           # 检查是否有 customize.ts 生成的 keystore
           KEYSTORE_PROPS="src-tauri/gen/android/keystore.properties"
           KEYSTORE_JKS="src-tauri/gen/android/app/keystore.jks"
@@ -377,4 +389,5 @@ jobs:
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
-        run: cd B_repo && pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=android
+        working-directory: B_repo
+        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=android
