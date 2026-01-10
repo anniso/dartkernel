@@ -205,7 +205,9 @@ jobs:
       - name: Apply custom config
         if: ${{ github.event.inputs.app_config != '' }}
         working-directory: B_repo
-        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+        env:
+          APP_CONFIG: ${{ github.event.inputs.app_config }}
+        run: pnpm tsx scripts/customize.ts "$env:APP_CONFIG"
 
       - name: Build Tauri app
         working-directory: B_repo
