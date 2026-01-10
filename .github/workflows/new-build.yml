@@ -25,7 +25,7 @@ on:
 
 env:
   # 私有仓库地址（直接硬编码）
-  PRIVATE_REPO: 'https://github.com/anniso/x'
+  PRIVATE_REPO: 'anniso/x'
   PRIVATE_REPO_REF: 'master'
 
 jobs:
@@ -98,7 +98,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.PRIVATE_REPO }}
-          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          token: ${{ secrets.ASECRET }}
           ref: ${{ env.PRIVATE_REPO_REF }}
 
       - name: Setup pnpm
@@ -165,7 +165,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.PRIVATE_REPO }}
-          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          token: ${{ secrets.ASECRET }}
           ref: ${{ env.PRIVATE_REPO_REF }}
 
       - name: Setup pnpm
@@ -244,7 +244,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.PRIVATE_REPO }}
-          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          token: ${{ secrets.ASECRET }}
           ref: ${{ env.PRIVATE_REPO_REF }}
 
       - name: Setup pnpm
