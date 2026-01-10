@@ -82,13 +82,6 @@ jobs:
         working-directory: B_repo
         run: pnpm tauri build --target universal-apple-darwin
 
-      - name: Upload bundle artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: x-tunnel-macos
-          path: |
-            B_repo/src-tauri/target/universal-apple-darwin/release/bundle/**/*
-
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
@@ -156,14 +149,6 @@ jobs:
         working-directory: B_repo
         run: pnpm tauri build --bundles appimage,deb
 
-      - name: Upload bundle artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: x-tunnel-linux
-          path: |
-            B_repo/src-tauri/target/release/bundle/appimage/*.AppImage
-            B_repo/src-tauri/target/release/bundle/deb/*.deb
-
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
@@ -220,13 +205,6 @@ jobs:
       - name: Build Tauri app
         working-directory: B_repo
         run: pnpm tauri build
-
-      - name: Upload bundle artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: x-tunnel-windows
-          path: |
-            B_repo/src-tauri/target/release/bundle/**/*
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
@@ -406,14 +384,6 @@ jobs:
           if [ "$KEYSTORE_PATH" = "/tmp/keystore.jks" ]; then
             rm /tmp/keystore.jks
           fi
-
-      - name: Upload APK artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: x-tunnel-android-${{ matrix.arch.name }}
-          path: |
-            B_repo/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
-            !B_repo/src-tauri/gen/android/app/build/outputs/apk/**/*-unsigned.apk
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
