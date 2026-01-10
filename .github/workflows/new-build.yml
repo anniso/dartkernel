@@ -92,6 +92,8 @@ jobs:
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
+        env:
+          APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=macos
 
   build-linux:
@@ -165,6 +167,8 @@ jobs:
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
+        env:
+          APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=linux
 
   build-windows:
@@ -227,6 +231,8 @@ jobs:
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
+        env:
+          APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=windows
 
   build-android:
@@ -412,4 +418,6 @@ jobs:
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
+        env:
+          APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=android
