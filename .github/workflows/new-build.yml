@@ -1,4 +1,4 @@
-name: Build from Public Repo
+name: Build dart New
 
 on:
   workflow_dispatch:
@@ -24,7 +24,7 @@ on:
         type: string
 
 env:
-  # 私有仓库地址（直接硬编码）
+  # 私有仓库地址（owner/repo 格式）
   PRIVATE_REPO: 'anniso/x'
   PRIVATE_REPO_REF: 'master'
 
@@ -52,7 +52,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -111,7 +110,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -178,7 +176,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -257,7 +254,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
 
       - name: Setup Java
         uses: actions/setup-java@v4
