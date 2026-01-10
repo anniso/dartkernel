@@ -41,6 +41,7 @@ jobs:
           repository: ${{ env.PRIVATE_REPO }}
           token: ${{ secrets.ASECRET }}
           ref: ${{ env.PRIVATE_REPO_REF }}
+          path: B_repo
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -61,31 +62,31 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri -> target
+          workspaces: B_repo/src-tauri -> target
 
       - name: Install JS dependencies
-        run: pnpm install --frozen-lockfile
+        run: cd B_repo && pnpm install --frozen-lockfile
 
       - name: Apply custom config
         if: ${{ github.event.inputs.app_config != '' }}
-        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+        run: cd B_repo && pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
 
       - name: Add Rust targets for universal binary
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       - name: Build Tauri app (universal)
-        run: pnpm tauri build --target universal-apple-darwin
+        run: cd B_repo && pnpm tauri build --target universal-apple-darwin
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
         with:
           name: x-tunnel-macos
           path: |
-            src-tauri/target/universal-apple-darwin/release/bundle/**/*
+            B_repo/src-tauri/target/universal-apple-darwin/release/bundle/**/*
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
-        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=macos
+        run: cd B_repo && pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=macos
 
   build-linux:
     name: Build Tauri app (Linux)
@@ -99,6 +100,7 @@ jobs:
           repository: ${{ env.PRIVATE_REPO }}
           token: ${{ secrets.ASECRET }}
           ref: ${{ env.PRIVATE_REPO_REF }}
+          path: B_repo
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -119,7 +121,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri -> target
+          workspaces: B_repo/src-tauri -> target
 
       - name: Install Linux dependencies
         run: |
@@ -132,26 +134,26 @@ jobs:
             patchelf
 
       - name: Install JS dependencies
-        run: pnpm install --frozen-lockfile
+        run: cd B_repo && pnpm install --frozen-lockfile
 
       - name: Apply custom config
         if: ${{ github.event.inputs.app_config != '' }}
-        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+        run: cd B_repo && pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
 
       - name: Build Tauri app
-        run: pnpm tauri build --bundles appimage,deb
+        run: cd B_repo && pnpm tauri build --bundles appimage,deb
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
         with:
           name: x-tunnel-linux
           path: |
-            src-tauri/target/release/bundle/appimage/*.AppImage
-            src-tauri/target/release/bundle/deb/*.deb
+            B_repo/src-tauri/target/release/bundle/appimage/*.AppImage
+            B_repo/src-tauri/target/release/bundle/deb/*.deb
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
-        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=linux
+        run: cd B_repo && pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=linux
 
   build-windows:
     name: Build Tauri app (Windows)
@@ -165,6 +167,7 @@ jobs:
           repository: ${{ env.PRIVATE_REPO }}
           token: ${{ secrets.ASECRET }}
           ref: ${{ env.PRIVATE_REPO_REF }}
+          path: B_repo
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -185,28 +188,31 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri -> target
+          workspaces: B_repo/src-tauri -> target
 
       - name: Install JS dependencies
-        run: pnpm install --frozen-lockfile
+        run: cd B_repo && pnpm install --frozen-lockfile
 
       - name: Apply custom config
         if: ${{ github.event.inputs.app_config != '' }}
-        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+        shell: pwsh
+        run: |
+          cd B_repo
+          pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
 
       - name: Build Tauri app
-        run: pnpm tauri build
+        run: cd B_repo && pnpm tauri build
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
         with:
           name: x-tunnel-windows
           path: |
-            src-tauri/target/release/bundle/**/*
+            B_repo/src-tauri/target/release/bundle/**/*
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
-        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=windows
+        run: cd B_repo && pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=windows
 
   build-android:
     name: Build Android (${{ matrix.arch.name }})
@@ -243,6 +249,7 @@ jobs:
           repository: ${{ env.PRIVATE_REPO }}
           token: ${{ secrets.ASECRET }}
           ref: ${{ env.PRIVATE_REPO_REF }}
+          path: B_repo
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -275,7 +282,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-          cache-dependency-path: core/go.sum
+          cache-dependency-path: B_repo/core/go.sum
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -285,31 +292,33 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri -> target
+          workspaces: B_repo/src-tauri -> target
           key: android-${{ matrix.arch.name }}
 
       - name: Install JS dependencies
-        run: pnpm install --frozen-lockfile
+        run: cd B_repo && pnpm install --frozen-lockfile
 
       - name: Apply custom config
         if: ${{ github.event.inputs.app_config != '' }}
-        run: pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
+        run: cd B_repo && pnpm tsx scripts/customize.ts '${{ github.event.inputs.app_config }}'
 
       - name: Build Go core library
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ARCHS: ${{ matrix.arch.go_arch }}
         run: |
+          cd B_repo
           chmod +x scripts/build_android.sh
           scripts/build_android.sh
 
       - name: Build Android APK
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-        run: pnpm tauri android build --target ${{ matrix.arch.target }} --apk true
+        run: cd B_repo && pnpm tauri android build --target ${{ matrix.arch.target }} --apk true
 
       - name: Sign APK
         run: |
+          cd B_repo
           # 检查是否有 customize.ts 生成的 keystore
           KEYSTORE_PROPS="src-tauri/gen/android/keystore.properties"
           KEYSTORE_JKS="src-tauri/gen/android/app/keystore.jks"
@@ -363,9 +372,9 @@ jobs:
         with:
           name: x-tunnel-android-${{ matrix.arch.name }}
           path: |
-            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
-            !src-tauri/gen/android/app/build/outputs/apk/**/*-unsigned.apk
+            B_repo/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+            !B_repo/src-tauri/gen/android/app/build/outputs/apk/**/*-unsigned.apk
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
-        run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=android
+        run: cd B_repo && pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=android
