@@ -321,6 +321,20 @@ jobs:
           APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: pnpm tsx scripts/customize.ts
 
+      - name: Reinitialize Android project
+        if: ${{ github.event.inputs.app_config != '' }}
+        working-directory: B_repo
+        run: |
+          rm -rf src-tauri/gen/android
+          pnpm tauri android init
+
+      - name: Setup Android signing
+        if: ${{ github.event.inputs.app_config != '' }}
+        working-directory: B_repo
+        env:
+          APP_CONFIG: ${{ github.event.inputs.app_config }}
+        run: pnpm tsx scripts/setup-android-signing.ts
+
       - name: Build Go core library
         working-directory: B_repo
         env:
