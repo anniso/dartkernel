@@ -80,7 +80,7 @@ jobs:
 
       - name: Build Tauri app (universal)
         working-directory: B_repo
-        run: pnpm tauri build --target universal-apple-darwin
+        run: pnpm tauri build --target universal-apple-darwin --bundles app
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
