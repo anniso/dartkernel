@@ -319,14 +319,14 @@ jobs:
           APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: pnpm tsx scripts/setup-android-signing.ts
 
-      - name: Build Go core library
+      - name: Build Go core library and JNI bridge
         working-directory: B_repo
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ARCHS: ${{ matrix.arch.go_arch }}
         run: |
-          chmod +x scripts/build_android.sh
-          scripts/build_android.sh
+          chmod +x scripts/deploy_android.sh
+          scripts/deploy_android.sh
 
       - name: Build Android APK
         working-directory: B_repo
