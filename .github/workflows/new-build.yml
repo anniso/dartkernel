@@ -204,6 +204,25 @@ jobs:
           APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: python scripts/customize.py
 
+      - name: Clean Tauri build cache (force icon rebuild)
+        if: ${{ github.event.inputs.app_config != '' }}
+        working-directory: B_repo
+        shell: pwsh
+        run: |
+          # 清理 Tauri 构建缓存以确保图标被重新嵌入
+          $targetDir = "src-tauri/target"
+          if (Test-Path $targetDir) {
+            Write-Host "Cleaning Tauri build artifacts to force icon rebuild..."
+            # 删除 release 目录中的构建产物
+            Get-ChildItem -Path $targetDir -Recurse -Include "*.exe","*.msi","nsis" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            # 删除 incremental 编译缓存
+            $incrementalDirs = Get-ChildItem -Path $targetDir -Recurse -Directory -Filter "incremental" -ErrorAction SilentlyContinue
+            foreach ($dir in $incrementalDirs) {
+              Remove-Item -Path $dir.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            Write-Host "✓ Build cache cleaned"
+          }
+
       - name: Build Tauri app
         working-directory: B_repo
         run: pnpm tauri build
