@@ -73,7 +73,7 @@ jobs:
         working-directory: B_repo
         env:
           APP_CONFIG: ${{ github.event.inputs.app_config }}
-        run: pnpm tsx scripts/customize.ts
+        run: python scripts/customize.py
 
       - name: Add Rust targets for universal binary
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
@@ -143,7 +143,7 @@ jobs:
         working-directory: B_repo
         env:
           APP_CONFIG: ${{ github.event.inputs.app_config }}
-        run: pnpm tsx scripts/customize.ts
+        run: python scripts/customize.py
 
       - name: Build Tauri app
         working-directory: B_repo
@@ -202,7 +202,7 @@ jobs:
         working-directory: B_repo
         env:
           APP_CONFIG: ${{ github.event.inputs.app_config }}
-        run: pnpm tsx scripts/customize.ts
+        run: python scripts/customize.py
 
       - name: Build Tauri app
         working-directory: B_repo
@@ -305,7 +305,7 @@ jobs:
         working-directory: B_repo
         env:
           APP_CONFIG: ${{ github.event.inputs.app_config }}
-        run: pnpm tsx scripts/customize.ts
+        run: python scripts/customize.py
 
       - name: Process Android icons
         if: ${{ github.event.inputs.app_config != '' }}
@@ -344,7 +344,7 @@ jobs:
           KEYSTORE_JKS="src-tauri/gen/android/app/keystore.jks"
           
           if [ -f "$KEYSTORE_PROPS" ] && [ -f "$KEYSTORE_JKS" ]; then
-            echo "使用 customize.ts 生成的签名..."
+            echo "使用 customize.py 生成的签名..."
             # 读取签名配置
             STORE_PASSWORD=$(grep 'storePassword' "$KEYSTORE_PROPS" | cut -d'=' -f2)
             KEY_PASSWORD=$(grep 'keyPassword' "$KEYSTORE_PROPS" | cut -d'=' -f2)
