@@ -305,6 +305,7 @@ jobs:
         working-directory: B_repo
         env:
           APP_CONFIG: ${{ github.event.inputs.app_config }}
+          SKIP_IDENTIFIER_UPDATE: 'true'
         run: npx tsx scripts/customize.ts
 
       - name: Process Android icons
