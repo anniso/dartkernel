@@ -204,6 +204,21 @@ jobs:
           APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: npx tsx scripts/customize.ts
 
+      - name: Build Windows TUN Service
+        working-directory: B_repo/service
+        env:
+          APP_CONFIG: ${{ github.event.inputs.app_config }}
+        shell: pwsh
+        run: |
+          cargo build --release
+          # 获取 service exe 名称
+          $config = $env:APP_CONFIG | ConvertFrom-Json
+          $appId = if ($config.app_id) { $config.app_id } else { "x-tunnel" }
+          $serviceExeName = "$appId-service"
+          # 复制到 sidecar 目录
+          New-Item -ItemType Directory -Force -Path ../src-tauri/bin | Out-Null
+          Copy-Item target/release/$serviceExeName.exe ../src-tauri/bin/$serviceExeName-x86_64-pc-windows-msvc.exe
+
       - name: Build Tauri app
         working-directory: B_repo
         run: pnpm tauri build
