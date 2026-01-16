@@ -234,6 +234,8 @@ jobs:
     name: Build Android (${{ matrix.arch.name }})
     runs-on: ubuntu-22.04
     if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'android' }}
+    env:
+      TAURI_ANDROID_ABI_FILTERS: ${{ matrix.arch.name }}
     strategy:
       fail-fast: false
       matrix:
