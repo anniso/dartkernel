@@ -453,10 +453,30 @@ jobs:
           chmod +x build-ios.sh
           ./build-ios.sh
 
-      - name: Build iOS IPA
+      - name: Build iOS app
         working-directory: B_repo
         run: |
-          cargo tauri ios build --ci
+          # 编译会成功，但导出阶段因无签名会失败，���略导出错误
+          cargo tauri ios build --ci || true
+
+      - name: Package unsigned IPA
+        working-directory: B_repo
+        run: |
+          # 从 DerivedData 找到已编译的 .app
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "*.app" -path "*/release-iphoneos/*" -not -path "*PacketTunnel*" -maxdepth 6 | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "✗ .app not found in DerivedData"
+            exit 1
+          fi
+          echo "找到 .app: $APP_PATH"
+
+          # 打包为未签名 IPA（Payload/xxx.app → zip）
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          mkdir -p src-tauri/gen/apple/build/arm64
+          zip -qr src-tauri/gen/apple/build/arm64/app.ipa Payload
+          rm -rf Payload
+          echo "✓ IPA 打包完成: src-tauri/gen/apple/build/arm64/app.ipa"
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
