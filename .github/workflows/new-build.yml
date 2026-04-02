@@ -14,10 +14,6 @@ on:
           - linux
           - windows
           - android
-      app_config:
-        description: 'config'
-        required: true
-        type: string
       task_id:
         description: '唯一id'
         required: true
@@ -69,11 +65,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Apply custom config
-        if: ${{ github.event.inputs.app_config != '' }}
+        if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
-        env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
-        run: npx tsx scripts/customize.ts
+        run: npx tsx scripts/customize.ts --task_id=${{ github.event.inputs.task_id }}
 
       - name: Add Rust targets for universal binary
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
@@ -85,8 +79,6 @@ jobs:
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
-        env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=macos
 
   build-linux:
@@ -139,11 +131,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Apply custom config
-        if: ${{ github.event.inputs.app_config != '' }}
+        if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
-        env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
-        run: npx tsx scripts/customize.ts
+        run: npx tsx scripts/customize.ts --task_id=${{ github.event.inputs.task_id }}
 
       - name: Build Tauri app
         working-directory: B_repo
@@ -154,8 +144,6 @@ jobs:
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
-        env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=linux
 
   build-windows:
@@ -198,23 +186,22 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Apply custom config
-        if: ${{ github.event.inputs.app_config != '' }}
+        if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
-        env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
-        run: npx tsx scripts/customize.ts
+        run: npx tsx scripts/customize.ts --task_id=${{ github.event.inputs.task_id }}
 
       - name: Build Windows TUN Service
         working-directory: B_repo/service
-        env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
         shell: pwsh
         run: |
           cargo build --release
-          # 获取 service exe 名称
-          $config = $env:APP_CONFIG | ConvertFrom-Json
-          $appId = if ($config.app_id) { $config.app_id } else { "x-tunnel" }
-          $serviceExeName = "$appId-service"
+          # 从 Cargo.toml 获取 service exe 名称（customize.ts 已更新）
+          $cargoContent = Get-Content Cargo.toml -Raw
+          if ($cargoContent -match 'name\s*=\s*"([^"]+)"') {
+            $serviceExeName = $matches[1]
+          } else {
+            $serviceExeName = "x-tunnel-service"
+          }
           # 复制到 sidecar 目录
           New-Item -ItemType Directory -Force -Path ../src-tauri/bin | Out-Null
           Copy-Item target/release/$serviceExeName.exe ../src-tauri/bin/$serviceExeName-x86_64-pc-windows-msvc.exe
@@ -226,8 +213,6 @@ jobs:
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
-        env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=windows
 
   build-android:
@@ -318,26 +303,21 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Apply custom config
-        if: ${{ github.event.inputs.app_config != '' }}
+        if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
         env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
           SKIP_IDENTIFIER_UPDATE: 'true'
-        run: npx tsx scripts/customize.ts
+        run: npx tsx scripts/customize.ts --task_id=${{ github.event.inputs.task_id }}
 
       - name: Process Android icons
-        if: ${{ github.event.inputs.app_config != '' }}
+        if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
-        env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
-        run: pnpm tsx scripts/process-android-icon.ts
+        run: pnpm tsx scripts/process-android-icon.ts --task_id=${{ github.event.inputs.task_id }}
 
       - name: Setup Android signing
-        if: ${{ github.event.inputs.app_config != '' }}
+        if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
-        env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
-        run: pnpm tsx scripts/setup-android-signing.ts
+        run: pnpm tsx scripts/setup-android-signing.ts --task_id=${{ github.event.inputs.task_id }}
 
       - name: Build Go core library and JNI bridge
         working-directory: B_repo
@@ -408,6 +388,4 @@ jobs:
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
-        env:
-          APP_CONFIG: ${{ github.event.inputs.app_config }}
         run: pnpm tsx scripts/upload-dist.ts --task_id=${{ github.event.inputs.task_id }} --workflow_run_id=${{ github.run_id }} --platform=android --arch=${{ matrix.arch.name }}
