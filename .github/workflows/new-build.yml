@@ -432,6 +432,9 @@ jobs:
         with:
           workspaces: B_repo/src-tauri -> target
 
+      - name: Install cargo-tauri
+        run: cargo install tauri-cli --locked
+
       - name: Install JS dependencies
         working-directory: B_repo
         run: pnpm install --frozen-lockfile
