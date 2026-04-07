@@ -470,6 +470,21 @@ jobs:
           fi
           echo "找到 .app: $APP_PATH"
 
+          # 校验 PacketTunnel.appex 是否已嵌入
+          if [ ! -d "$APP_PATH/PlugIns/PacketTunnel.appex" ]; then
+            echo "⚠ PacketTunnel.appex 未嵌入，从 DerivedData 手动复制..."
+            APPEX_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "PacketTunnel.appex" -path "*/release-iphoneos/*" -maxdepth 6 | head -1)
+            if [ -z "$APPEX_PATH" ]; then
+              echo "✗ PacketTunnel.appex not found in DerivedData"
+              exit 1
+            fi
+            mkdir -p "$APP_PATH/PlugIns"
+            cp -r "$APPEX_PATH" "$APP_PATH/PlugIns/"
+            echo "✓ 已复制 PacketTunnel.appex 到 PlugIns/"
+          else
+            echo "✓ PacketTunnel.appex 已嵌入"
+          fi
+
           # 打包为未签名 IPA（Payload/xxx.app → zip）
           mkdir -p Payload
           cp -r "$APP_PATH" Payload/
