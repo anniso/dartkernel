@@ -1,5 +1,8 @@
 name: Build dart New
 
+# 本文件在 anniso/x 与 anniso/dartkernel 中各有一份，内容保持一致；修改后两边同步。
+# 工具链版本集中在下方 env，升级时只改这里（开发构建 build.yml 中有相同的一组，需一起改）。
+
 on:
   workflow_dispatch:
     inputs:
@@ -24,6 +27,14 @@ env:
   # 私有仓库地址（owner/repo 格式）
   PRIVATE_REPO: 'anniso/x'
   PRIVATE_REPO_REF: 'master'
+  # 工具链
+  PNPM_VERSION: '10.28.0'          # 与 pnpm-lock.yaml / pnpm-workspace.yaml（onlyBuiltDependencies）一致
+  NODE_VERSION: '22'
+  RUST_TOOLCHAIN: '1.97.0'         # 与 checks.yml 一致
+  JAVA_VERSION: '21'               # AGP 8.11 要求 JDK 17+
+  ANDROID_NDK_VERSION: '29.0.14206865'  # 与 src-tauri/gen/android/app/build.gradle.kts 的 ndkVersion 一致
+  ANDROID_BUILD_TOOLS: '35.0.0'    # AGP 8.11 默认 build-tools，apksigner 也用它
+  TAURI_CLI_VERSION: '2.12.2'      # 与 package.json 中 @tauri-apps/cli 一致（iOS 的 Xcode 构建阶段调用 cargo tauri）
 
 jobs:
   build-macos:
@@ -43,17 +54,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
           run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: clippy
 
       - name: Cache Rust dependencies
@@ -99,17 +111,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
           run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: clippy
 
       - name: Cache Rust dependencies
@@ -120,11 +133,15 @@ jobs:
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.0-dev \
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            pkg-config \
+            libssl-dev \
             libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
+            libayatana-appindicator3-dev \
             librsvg2-dev \
+            libxdo-dev \
+            file \
             patchelf
 
       - name: Install JS dependencies
@@ -164,17 +181,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
           run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: clippy
 
       - name: Cache Rust dependencies
@@ -258,39 +276,48 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
           run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: ${{ env.JAVA_VERSION }}
 
+      # 默认的 "tools" 包在 cmdline-tools 16+ 中已不存在（sdkmanager 会直接失败），只装 platform-tools
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
-        id: setup-ndk
         with:
-          ndk-version: r26d
-          local-cache: false
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      # NDK 版本与 Gradle 的 ndkVersion 保持一致，Go/JNI 与 Rust/Gradle 用同一个 NDK
+      - name: Install Android NDK and build-tools
+        id: setup-ndk
+        run: |
+          set -euo pipefail
+          sdkmanager --install "ndk;${ANDROID_NDK_VERSION}" "build-tools;${ANDROID_BUILD_TOOLS}" > /dev/null
+          ndk="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
+          test -x "$ndk/ndk-build"
+          test -x "$ANDROID_HOME/build-tools/$ANDROID_BUILD_TOOLS/apksigner"
+          echo "ndk-path=$ndk" >> "$GITHUB_OUTPUT"
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version-file: B_repo/core/go.mod
           cache-dependency-path: B_repo/core/go.sum
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: ${{ matrix.arch.rust_target }}
 
       - name: Cache Rust dependencies
@@ -316,6 +343,7 @@ jobs:
         run: pnpm tsx scripts/process-android-icon.ts --task_id=${{ github.event.inputs.task_id }}
 
       - name: Setup Android signing
+        id: signing
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
         run: pnpm tsx scripts/setup-android-signing.ts --task_id=${{ github.event.inputs.task_id }}
@@ -333,34 +361,60 @@ jobs:
         working-directory: B_repo
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-        run: pnpm tauri android build --target ${{ matrix.arch.target }} --apk true
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          TARGET: ${{ matrix.arch.target }}
+        run: |
+          # tauri-cli 2.10 起 --apk 是开关，之前的版本要写 --apk true；按所检出代码锁定的 CLI 版本选择
+          if grep -qE -- '--apk <' <<<"$(pnpm exec tauri android build --help)"; then
+            pnpm tauri android build --target "$TARGET" --apk true
+          else
+            pnpm tauri android build --target "$TARGET" --apk
+          fi
 
       - name: Sign APK
         working-directory: B_repo
+        env:
+          SIGN_KEYSTORE: ${{ steps.signing.outputs.keystore }}
+          SIGN_KEY_ALIAS: ${{ steps.signing.outputs.key_alias }}
+          SIGN_PASS_FILE: ${{ steps.signing.outputs.pass_file }}
+          HAS_TASK_ID: ${{ github.event.inputs.task_id != '' }}
         run: |
-          # 检查是否有 customize.ts 生成的 keystore
-          KEYSTORE_PROPS="src-tauri/gen/android/keystore.properties"
-          KEYSTORE_JKS="src-tauri/gen/android/app/keystore.jks"
-          
-          if [ -f "$KEYSTORE_PROPS" ] && [ -f "$KEYSTORE_JKS" ]; then
-            echo "使用 customize.py 生成的签名..."
-            # 读取签名配置
-            STORE_PASSWORD=$(grep 'storePassword' "$KEYSTORE_PROPS" | cut -d'=' -f2)
-            KEY_PASSWORD=$(grep 'keyPassword' "$KEYSTORE_PROPS" | cut -d'=' -f2)
-            KEY_ALIAS=$(grep 'keyAlias' "$KEYSTORE_PROPS" | cut -d'=' -f2)
-            KEYSTORE_PATH="$KEYSTORE_JKS"
+          set -euo pipefail
+          APKSIGNER="$ANDROID_HOME/build-tools/$ANDROID_BUILD_TOOLS/apksigner"
+          LEGACY_PROPS="src-tauri/gen/android/keystore.properties"
+          LEGACY_JKS="src-tauri/gen/android/app/keystore.jks"
+
+          if [ -n "${SIGN_KEYSTORE:-}" ]; then
+            # 当前版本 setup-android-signing.ts：密钥库在仓库外，口令在 0600 文件中
+            echo "使用 setup-android-signing.ts 生成的签名"
+            KS_ARGS=(--ks "$SIGN_KEYSTORE" --ks-key-alias "$SIGN_KEY_ALIAS"
+                     --ks-pass "file:$SIGN_PASS_FILE" --key-pass "file:$SIGN_PASS_FILE")
+          elif [ -f "$LEGACY_PROPS" ] && [ -f "$LEGACY_JKS" ]; then
+            # 旧版 setup-android-signing.ts（写入 gen/android）；构建旧提交时仍可用
+            echo "使用旧版签名文件"
+            prop() { grep "^$1=" "$LEGACY_PROPS" | head -1 | cut -d'=' -f2-; }
+            KS_PASS="$(prop storePassword)"
+            KEY_PASS="$(prop keyPassword)"
+            export KS_PASS KEY_PASS
+            echo "::add-mask::$KS_PASS"
+            echo "::add-mask::$KEY_PASS"
+            KS_ARGS=(--ks "$LEGACY_JKS" --ks-key-alias "$(prop keyAlias)"
+                     --ks-pass env:KS_PASS --key-pass env:KEY_PASS)
+          elif [ "${HAS_TASK_ID:-}" = "true" ]; then
+            echo "::error::有 task_id 但没有签名材料，拒绝用临时密钥签名"
+            exit 1
           else
             echo "生成临时测试 keystore..."
-            keytool -genkey -v -keystore /tmp/keystore.jks \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -alias release -storepass testpass123 -keypass testpass123 \
+            KS_PASS="$(openssl rand -hex 16)"
+            export KS_PASS
+            keytool -genkey -noprompt -keystore "$RUNNER_TEMP/test.jks" \
+              -keyalg RSA -keysize 2048 -validity 10000 -alias release \
+              -storepass:env KS_PASS -keypass:env KS_PASS \
               -dname "CN=Test, OU=Test, O=Test, L=Test, ST=Test, C=CN"
-            STORE_PASSWORD="testpass123"
-            KEY_PASSWORD="testpass123"
-            KEY_ALIAS="release"
-            KEYSTORE_PATH="/tmp/keystore.jks"
+            KS_ARGS=(--ks "$RUNNER_TEMP/test.jks" --ks-key-alias release
+                     --ks-pass env:KS_PASS --key-pass env:KS_PASS)
           fi
-          
+
           # 查找未签名 APK
           APK_PATH=$(find src-tauri/gen/android/app/build/outputs/apk -name "*-unsigned.apk" | head -1)
           if [ -z "$APK_PATH" ]; then
@@ -368,23 +422,11 @@ jobs:
             exit 1
           fi
           SIGNED_APK="${APK_PATH/-unsigned/}"
-          
-          # 使用 apksigner 签名
-          ${ANDROID_HOME}/build-tools/34.0.0/apksigner sign \
-            --ks "$KEYSTORE_PATH" \
-            --ks-pass pass:$STORE_PASSWORD \
-            --ks-key-alias $KEY_ALIAS \
-            --key-pass pass:$KEY_PASSWORD \
-            --out "$SIGNED_APK" \
-            "$APK_PATH"
-          
-          # 删除未签名 APK
+
+          "$APKSIGNER" sign "${KS_ARGS[@]}" --out "$SIGNED_APK" "$APK_PATH"
+          "$APKSIGNER" verify "$SIGNED_APK"
           rm "$APK_PATH"
-          
-          # 如果是临时 keystore，删除它
-          if [ "$KEYSTORE_PATH" = "/tmp/keystore.jks" ]; then
-            rm /tmp/keystore.jks
-          fi
+          rm -f "$RUNNER_TEMP/test.jks"
 
       - name: Upload to API
         if: ${{ github.event.inputs.task_id != '' }}
@@ -408,23 +450,24 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
           run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version-file: B_repo/core/go.mod
           cache-dependency-path: B_repo/core/go.sum
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: aarch64-apple-ios
 
       - name: Cache Rust dependencies
@@ -433,7 +476,7 @@ jobs:
           workspaces: B_repo/src-tauri -> target
 
       - name: Install cargo-tauri
-        run: cargo install tauri-cli --locked
+        run: cargo install tauri-cli --version "$TAURI_CLI_VERSION" --locked
 
       - name: Install JS dependencies
         working-directory: B_repo
@@ -447,16 +490,13 @@ jobs:
       - name: Build Go mobile framework (Mihomo.xcframework)
         working-directory: B_repo/core
         run: |
-          go install golang.org/x/mobile/cmd/gomobile@latest
-          go install golang.org/x/mobile/cmd/gobind@latest
-          gomobile init
           chmod +x build-ios.sh
           ./build-ios.sh
 
       - name: Build iOS app
         working-directory: B_repo
         run: |
-          # 编译会成功，但导出阶段因无签名会失败，���略导出错误
+          # 编译会成功，但导出阶段因无签名会失败，忽略导出错误
           cargo tauri ios build --ci || true
 
       - name: Package unsigned IPA
