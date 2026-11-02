@@ -85,6 +85,24 @@ jobs:
       - name: Add Rust targets for universal binary
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: B_repo/core/go.mod
+          cache-dependency-path: B_repo/core/go.sum
+
+      - name: Build mihomo sidecar
+        working-directory: B_repo
+        shell: bash
+        # 内核从 core/go.mod 锁定的 anniso/mihomo 源码编译（scripts/build-mihomo.ts）；
+        # 仓库旧版本仍提交了二进制、没有该脚本时直接使用已提交的文件
+        run: |
+          if [ -f scripts/build-mihomo.ts ]; then
+            pnpm tsx scripts/build-mihomo.ts --target=universal-apple-darwin
+          else
+            echo "scripts/build-mihomo.ts 不存在，使用仓库中已提交的内核二进制"
+          fi
+
       - name: Build Tauri app (universal)
         working-directory: B_repo
         run: pnpm tauri build --target universal-apple-darwin --bundles app
@@ -152,6 +170,24 @@ jobs:
         if: ${{ github.event.inputs.task_id != '' }}
         working-directory: B_repo
         run: npx tsx scripts/customize.ts --task_id=${{ github.event.inputs.task_id }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: B_repo/core/go.mod
+          cache-dependency-path: B_repo/core/go.sum
+
+      - name: Build mihomo sidecar
+        working-directory: B_repo
+        shell: bash
+        # 内核从 core/go.mod 锁定的 anniso/mihomo 源码编译（scripts/build-mihomo.ts）；
+        # 仓库旧版本仍提交了二进制、没有该脚本时直接使用已提交的文件
+        run: |
+          if [ -f scripts/build-mihomo.ts ]; then
+            pnpm tsx scripts/build-mihomo.ts --target=x86_64-unknown-linux-gnu
+          else
+            echo "scripts/build-mihomo.ts 不存在，使用仓库中已提交的内核二进制"
+          fi
 
       - name: Build Tauri app
         working-directory: B_repo
@@ -224,6 +260,24 @@ jobs:
           # 复制到 sidecar 目录
           New-Item -ItemType Directory -Force -Path ../src-tauri/bin | Out-Null
           Copy-Item target/release/$serviceExeName.exe ../src-tauri/bin/$serviceExeName-x86_64-pc-windows-msvc.exe
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: B_repo/core/go.mod
+          cache-dependency-path: B_repo/core/go.sum
+
+      - name: Build mihomo sidecar
+        working-directory: B_repo
+        shell: bash
+        # 内核从 core/go.mod 锁定的 anniso/mihomo 源码编译（scripts/build-mihomo.ts）；
+        # 仓库旧版本仍提交了二进制、没有该脚本时直接使用已提交的文件
+        run: |
+          if [ -f scripts/build-mihomo.ts ]; then
+            pnpm tsx scripts/build-mihomo.ts --target=x86_64-pc-windows-msvc
+          else
+            echo "scripts/build-mihomo.ts 不存在，使用仓库中已提交的内核二进制"
+          fi
 
       - name: Build Tauri app
         working-directory: B_repo
