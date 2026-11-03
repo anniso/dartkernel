@@ -34,7 +34,7 @@ env:
   JAVA_VERSION: '21'               # AGP 8.11 要求 JDK 17+
   ANDROID_NDK_VERSION: '29.0.14206865'  # 与 src-tauri/gen/android/app/build.gradle.kts 的 ndkVersion 一致
   ANDROID_BUILD_TOOLS: '35.0.0'    # AGP 8.11 默认 build-tools，apksigner 也用它
-  TAURI_CLI_VERSION: '2.12.2'      # 与 package.json 中 @tauri-apps/cli 一致（iOS 的 Xcode 构建阶段调用 cargo tauri）
+  TAURI_CLI_VERSION: '2.12.4'      # 与 package.json 中 @tauri-apps/cli 一致（iOS 的 Xcode 构建阶段调用 cargo tauri）
 
 jobs:
   build-macos:
@@ -85,13 +85,23 @@ jobs:
       - name: Add Rust targets for universal binary
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
+      # 内核产物按版本锁定 + 编译选项 + 编译脚本缓存；命中时跳过 Go 安装与编译
+      - name: Cache mihomo sidecar
+        id: mihomo-cache
+        uses: actions/cache@v4
+        with:
+          path: B_repo/src-tauri/bin/mihomo-*
+          key: mihomo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('B_repo/core/go.mod', 'B_repo/core/go.sum', 'B_repo/core/build-tags', 'B_repo/scripts/build-mihomo.ts', 'B_repo/scripts/lib/mihomo-targets.ts') }}
+
       - name: Setup Go
+        if: steps.mihomo-cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v5
         with:
           go-version-file: B_repo/core/go.mod
           cache-dependency-path: B_repo/core/go.sum
 
       - name: Build mihomo sidecar
+        if: steps.mihomo-cache.outputs.cache-hit != 'true'
         working-directory: B_repo
         shell: bash
         # 内核从 core/go.mod 锁定的 anniso/mihomo 源码编译（scripts/build-mihomo.ts）；
@@ -171,13 +181,23 @@ jobs:
         working-directory: B_repo
         run: npx tsx scripts/customize.ts --task_id=${{ github.event.inputs.task_id }}
 
+      # 内核产物按版本锁定 + 编译选项 + 编译脚本缓存；命中时跳过 Go 安装与编译
+      - name: Cache mihomo sidecar
+        id: mihomo-cache
+        uses: actions/cache@v4
+        with:
+          path: B_repo/src-tauri/bin/mihomo-*
+          key: mihomo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('B_repo/core/go.mod', 'B_repo/core/go.sum', 'B_repo/core/build-tags', 'B_repo/scripts/build-mihomo.ts', 'B_repo/scripts/lib/mihomo-targets.ts') }}
+
       - name: Setup Go
+        if: steps.mihomo-cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v5
         with:
           go-version-file: B_repo/core/go.mod
           cache-dependency-path: B_repo/core/go.sum
 
       - name: Build mihomo sidecar
+        if: steps.mihomo-cache.outputs.cache-hit != 'true'
         working-directory: B_repo
         shell: bash
         # 内核从 core/go.mod 锁定的 anniso/mihomo 源码编译（scripts/build-mihomo.ts）；
@@ -261,13 +281,23 @@ jobs:
           New-Item -ItemType Directory -Force -Path ../src-tauri/bin | Out-Null
           Copy-Item target/release/$serviceExeName.exe ../src-tauri/bin/$serviceExeName-x86_64-pc-windows-msvc.exe
 
+      # 内核产物按版本锁定 + 编译选项 + 编译脚本缓存；命中时跳过 Go 安装与编译
+      - name: Cache mihomo sidecar
+        id: mihomo-cache
+        uses: actions/cache@v4
+        with:
+          path: B_repo/src-tauri/bin/mihomo-*
+          key: mihomo-${{ runner.os }}-${{ github.job }}-${{ hashFiles('B_repo/core/go.mod', 'B_repo/core/go.sum', 'B_repo/core/build-tags', 'B_repo/scripts/build-mihomo.ts', 'B_repo/scripts/lib/mihomo-targets.ts') }}
+
       - name: Setup Go
+        if: steps.mihomo-cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v5
         with:
           go-version-file: B_repo/core/go.mod
           cache-dependency-path: B_repo/core/go.sum
 
       - name: Build mihomo sidecar
+        if: steps.mihomo-cache.outputs.cache-hit != 'true'
         working-directory: B_repo
         shell: bash
         # 内核从 core/go.mod 锁定的 anniso/mihomo 源码编译（scripts/build-mihomo.ts）；
