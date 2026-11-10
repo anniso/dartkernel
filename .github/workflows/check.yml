@@ -36,3 +36,24 @@ jobs:
       - uses: jdx/mise-action@v5
       - uses: Swatinem/rust-cache@v2
       - run: scripts/ci.sh ${{ matrix.task }}
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, windows-11-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ secrets.CK_REPO }}
+          ref: ${{ inputs.ref }}
+          token: ${{ secrets.ASECRET }}
+          persist-credentials: false
+      - uses: jdx/mise-action@v5
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            desktop -> desktop/target
+      - run: scripts/ci.sh desktop
