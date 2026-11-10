@@ -51,6 +51,8 @@ jobs:
           token: ${{ secrets.ASECRET }}
           persist-credentials: false
       - uses: jdx/mise-action@v5
+        with:
+          install_args: rust
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
