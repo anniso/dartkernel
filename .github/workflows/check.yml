@@ -59,3 +59,23 @@ jobs:
             . -> target
             desktop -> desktop/target
       - run: scripts/ci.sh desktop
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ secrets.CK_REPO }}
+          ref: ${{ inputs.ref }}
+          token: ${{ secrets.ASECRET }}
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v4
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: rust
+      - uses: Swatinem/rust-cache@v2
+      - run: scripts/ci.sh android
