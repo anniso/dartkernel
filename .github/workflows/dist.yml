@@ -13,7 +13,7 @@ on:
         required: true
         type: choice
         default: all
-        options: [all, macos, windows, linux, agent]
+        options: [all, macos, windows, linux, agent, openwrt]
 
 env:
   CARGO_TERM_COLOR: always
@@ -110,6 +110,25 @@ jobs:
           install_args: rust
       - uses: Swatinem/rust-cache@v2
       - run: scripts/ci.sh agent
+        env:
+          RELEASE_ENDPOINT: ${{ secrets.UP_URL }}
+          RELEASE_TOKEN: ${{ secrets.UP_TOKEN }}
+  openwrt:
+    if: inputs.os == 'openwrt'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ secrets.CK_REPO }}
+          ref: ${{ inputs.ref }}
+          token: ${{ secrets.ASECRET }}
+          persist-credentials: false
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: rust
+      - uses: Swatinem/rust-cache@v2
+      - run: scripts/ci.sh openwrt
         env:
           RELEASE_ENDPOINT: ${{ secrets.UP_URL }}
           RELEASE_TOKEN: ${{ secrets.UP_TOKEN }}
